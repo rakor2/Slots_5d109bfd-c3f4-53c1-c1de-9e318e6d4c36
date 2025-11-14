@@ -41,6 +41,16 @@ Channels.ItemHandler:SetHandler(function (Data)
         end
     end
 
+    if action == 'Equip' then
+        local character = _C().Uuid.EntityUuid
+        Osi.Equip(character, Data.uuid)
+    end
+
+    if action == 'Unequip' then
+        local character = _C().Uuid.EntityUuid
+        Osi.Unequip(character, Data.uuid)
+    end
+
 end)
 
 

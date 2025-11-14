@@ -139,6 +139,24 @@ function MainTab(p)
                     popup:AddSeparator()
 
                     popup:AddText('Current slot: ' .. Ext.Stats.Get(statsId).Slot)
+                    popup:AddSeparator()
+
+                    CreateSelectable(popup, 'Equip', function()
+                        local Data = {
+                            action = 'Equip',
+                            uuid = item.Item.Uuid.EntityUuid
+                        }
+                        Channels.ItemHandler:SendToServer(Data)
+                    end)
+
+                    CreateSelectable(popup, 'Unequip', function()
+                        local Data = {
+                            action = 'Unequip',
+                            uuid = item.Item.Uuid.EntityUuid
+                        }
+                        Channels.ItemHandler:SendToServer(Data)
+                    end)
+
                     local collapseVis = popup:AddCollapsingHeader('Visual slots')
 
 
