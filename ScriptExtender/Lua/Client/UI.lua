@@ -139,11 +139,25 @@ function MainTab(p)
                     popup:AddSeparator()
 
                     popup:AddText('Current slot: ' .. Ext.Stats.Get(statsId).Slot)
-                    popup:AddSeparator()
+                    local collapseVis = popup:AddCollapsingHeader('Visual slots')
+
 
 
                     for _, slot in pairs(SlotNames) do
-                        CreateSelectable(popup, slot, function()
+                        CreateSelectable(collapseVis, slot, function()
+
+                            Ext.Stats.Get(statsId).Slot = slot
+                            Ext.Stats.Sync(statsId)
+
+                            RequestRecreateItem(item.Item)
+
+                        end)
+                    end
+                    local collapseNonVis = popup:AddCollapsingHeader('Non-Visual slots')
+
+
+                    for _, slot in pairs(NonVisualSlots) do
+                        CreateSelectable(collapseNonVis, slot, function()
 
                             Ext.Stats.Get(statsId).Slot = slot
                             Ext.Stats.Sync(statsId)
@@ -222,7 +236,7 @@ function MainTab(p)
 
                 for _, item in pairs(items) do
                     if not EquippedCheck[item.Uuid] then
-                        for _, allowed in pairs(SlotNames) do
+                        for _, allowed in pairs(AllowedSlots) do
                             if item.Item.Equipable and item.Item.Equipable.Slot == allowed then
                                 local entity = Ext.Entity.Get(item.Uuid)
                                 local name = entity.DisplayName.Name:Get()
