@@ -1,0 +1,30 @@
+{
+    "SchemaVersion": 1,
+    "ModName": "Slots",
+    "Tabs": [
+        {
+            "TabId": "Slots-main",
+            "TabName": "Slots",
+            "Sections": [
+                {
+                    "SectionId": "general_settings",
+                    "SectionName": "",
+                    "Settings": [
+                        {
+                            "Id": "sl_toggle_window",
+                            "Name": "! Toggle window",
+                            "Type": "keybinding_v2",
+                            "Default": {
+                                "Keyboard": {
+                                    "Key": "",
+                                    "ModifierKeys": []
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+
