@@ -288,3 +288,4 @@ end
 
 Mods.BG3MCM.IMGUIAPI:InsertModMenuTab(ModuleUUID, 'Slots', Slots_MCM)
 
+MCM.InsertModMenuTab('Slots', Slots_MCM, ModuleUUID)
