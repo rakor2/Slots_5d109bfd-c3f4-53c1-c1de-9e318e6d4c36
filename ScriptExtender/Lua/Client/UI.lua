@@ -1,20 +1,14 @@
 local OPENQUESTIONMARK = false
 IMGUI:AntiStupiditySystem()
 
-
-
-
----@class imgui_elements
+---@class ImguiElements
 E = E or {}
 
-
-
 Globals.ItemSlotMap = Globals.ItemSlotMap or {}
-Globals.States.modEnabled = false
 
+local tableSize = 5
 
 function Slots_MCM(p)
-
     Slots_MCM = p
 
     w = Ext.IMGUI.NewWindow('Slots')
@@ -23,104 +17,109 @@ function Slots_MCM(p)
     w.Closeable = true
 
 
-    openButton = p:AddButton('Open')
+
+    local openButton = p:AddButton('Open')
     openButton.IDContext = 'aekjfnwlekfjne'
     openButton.OnClick = function()
-
         w.Open = not w.Open
-
         ReBuildUI()
-
     end
+
+
 
     w.OnClose = function()
         w.Open = false
     end
 
+
+
     MCM.SetKeybindingCallback('sl_toggle_window', function()
-
         w.Open = not w.Open
-
         ReBuildUI()
-
     end)
 
-    ApplyStyle(w, 1)
 
+
+    ApplyStyle(w, 1)
     MainWindow(w)
 end
 
 
 
 function MainWindow(w)
-    ViewportSize = Ext.IMGUI.GetViewportSize()
+    local ViewportSize = Ext.IMGUI.GetViewportSize()
     w:SetPos({ViewportSize[1] / 6, ViewportSize[2] / 10})
     if ViewportSize[1] <= 1920 and ViewportSize[2] <= 1080 then
-        w:SetSize({ 271, 750 })
+        w:SetSize({271, 750})
     else
-        w:SetSize({ 400, 1000 })
+        w:SetSize({400, 1000})
     end
     w.AlwaysAutoResize = false
     w.Scaling = 'Scaled'
     w.Font = 'Font'
-
     w.Visible = true
     w.Closeable = true
 
     local mainTabBar = w:AddTabBar('MainTabBar')
-
     E.main2 = mainTabBar:AddTabItem('Main')
-
-    -- local btnEnableMod = E.main2:AddButton('Enable mod')
-    -- btnEnableMod.OnClick = function (e)
-    --     Globals.States.modEnabled = true
-    --     MainTab(E.main2)
-    --     btnEnableMod.Visible = false
-    -- end
-
     MainTab(E.main2)
+    -- E.settings = mainTabBar:AddTabItem('Settings')
+    -- SettingsTab(E.settings)
+
 end
+
 
 
 function MainTab(p)
 
+    ICON_SIZE = {64, 64}
+    PARENT = E.groupTable
 
     local btnWeightAll = p:AddButton('0 weight all')
     btnWeightAll.OnClick = function ()
-         Data = {
+        Channels.ItemHandler:SendToServer({
             action = 'WeightAll',
             uuid = nil
-        }
-        Channels.ItemHandler:SendToServer(Data)
-
+        })
     end
 
 
+    E.checkAllowWpn = p:AddCheckbox('Allow weapons')
+    E.checkAllowWpn.SameLine = true
+    E.checkAllowWpn.OnChange = function ()
+        ReBuildUI()
+    end
+
     p:AddSeparatorText('Equipped items')
-
     E.groupTable = p:AddGroup('tbls')
-
-    ICON_SIZE = {64,64}
-    PARENT = E.groupTable
-
 
 
     function CreateTable(parent, items, iconSize)
-
+        local Slots = {}
+        local Slots2 = {}
         local EquippedItems = {}
         local InventoryItems ={}
-
         local popup = parent:AddPopup('PopSmoke')
+        local withWeapons = false
+
+        if E.checkAllowWpn.Checked then
+            Slots = SlotNamesWpn
+            Slots2 = AllowedSlotsWpn
+            withWeapons = true
+        else
+            Slots = SlotNames
+            Slots2 = AllowedSlots
+            withWeapons = false
+        end
 
         local function CreateSubTables(tableId, itemTbl)
-
-            local tbl = parent:AddTable(tableId, 5)
+            local tbl = parent:AddTable(tableId, tableSize)
             local imageRow
             local descRow
             local count = 0
 
-            for i, item in ipairs(itemTbl) do
-                if count % 5 == 0 then
+            for _, item in ipairs(itemTbl) do
+                if count % tableSize == 0 then
                     descRow = tbl:AddRow()
                     imageRow = tbl:AddRow()
                 end
@@ -132,7 +131,6 @@ function MainTab(p)
                 imgbtn.IDContext = Ext.Math.Random(1, 1000)
                 imgbtn.OnClick = function(e)
                     local statsId = item.Item.Data.StatsId
-
                     Imgui.ClearChildren(popup)
 
                     popup:AddText(item.Name)
@@ -141,27 +139,27 @@ function MainTab(p)
                     popup:AddText('Current slot: ' .. Ext.Stats.Get(statsId).Slot)
                     popup:AddSeparator()
 
+
                     CreateSelectable(popup, 'Equip', function()
-                        local Data = {
+                        Channels.ItemHandler:SendToServer({
                             action = 'Equip',
                             uuid = item.Item.Uuid.EntityUuid
-                        }
-                        Channels.ItemHandler:SendToServer(Data)
+                        })
                     end)
+
+
 
                     CreateSelectable(popup, 'Unequip', function()
-                        local Data = {
+                        Channels.ItemHandler:SendToServer({
                             action = 'Unequip',
                             uuid = item.Item.Uuid.EntityUuid
-                        }
-                        Channels.ItemHandler:SendToServer(Data)
+                        })
                     end)
-
-                    local collapseVis = popup:AddCollapsingHeader('Visual slots')
-
+                    local collapseVis = popup:AddCollapsingHeader('Visual')
 
 
-                    for _, slot in pairs(SlotNames) do
+
+                    for _, slot in pairs(Slots) do
                         CreateSelectable(collapseVis, slot, function()
 
                             Ext.Stats.Get(statsId).Slot = slot
@@ -171,7 +169,8 @@ function MainTab(p)
 
                         end)
                     end
-                    local collapseNonVis = popup:AddCollapsingHeader('Non-Visual slots')
+                    local collapseNonVis = popup:AddCollapsingHeader('Non-Visual')
+
 
 
                     for _, slot in pairs(NonVisualSlots) do
@@ -187,27 +186,26 @@ function MainTab(p)
                     popup:AddSeparator()
 
 
+
                     CreateSelectable(popup, '0 weight', function()
-                        local Data = {
+                        Channels.ItemHandler:SendToServer({
                             action = 'Weight',
                             uuid = item.Item.Uuid.EntityUuid
-                        }
-                        Channels.ItemHandler:SendToServer(Data)
+                        })
                     end)
                     popup:AddSeparator()
 
 
+
                     CreateSelectable(popup, 'Delete', function()
-                        local Data = {
+                        Channels.ItemHandler:SendToServer({
                             action = 'Delete',
                             uuid = item.Item.Uuid.EntityUuid
-                        }
-                        Channels.ItemHandler:SendToServer(Data)
+                        })
                         Helpers.Timer:OnTicks(3, function ()
                             ReBuildUI()
                         end)
                     end)
-
 
                     -- popup:AddSeparator()
 
@@ -218,6 +216,11 @@ function MainTab(p)
                     -- CreateSelectable(popup, 'Stats slot', function()
                     --     local statsId = item.Item.Data.StatsId
                     --     DDump(Ext.Stats.Get(statsId).Slot)
+                    -- end)
+
+                    -- CreateSelectable(popup, 'Dump stats', function()
+                    --     local statsId = item.Item.Data.StatsId
+                    --     DDump(Ext.Stats.Get(statsId))
                     -- end)
 
                     -- CreateSelectable(popup, 'EquipmentSlot', function()
@@ -238,28 +241,37 @@ function MainTab(p)
         end
 
 
-        Channels.RequestEquipped:RequestToServer({}, function (Response)
+        Channels.RequestEquipped:RequestToServer({withWeapons = withWeapons}, function(Response)
             if Response then
-                Equipped = Response
-
-
+                local Equipped = Response
                 local EquippedCheck = {}
+
                 for _, uuid in pairs(Equipped) do
                     EquippedCheck[uuid] = true
                     local item = Ext.Entity.Get(uuid)
                     local name = item.DisplayName.Name:Get()
                     local icon = item.Icon.Icon
-                    table.insert(EquippedItems, {['Item'] = item, ['Name'] = name, ['Icon'] = icon})
+
+                    table.insert(EquippedItems, {
+                        ['Item'] = item,
+                        ['Name'] = name,
+                        ['Icon'] = icon
+                    })
                 end
+
 
                 for _, item in pairs(items) do
                     if not EquippedCheck[item.Uuid] then
-                        for _, allowed in pairs(AllowedSlots) do
+                        for _, allowed in pairs(Slots2) do
                             if item.Item.Equipable and item.Item.Equipable.Slot == allowed then
                                 local entity = Ext.Entity.Get(item.Uuid)
                                 local name = entity.DisplayName.Name:Get()
                                 local icon = entity.Icon.Icon
-                                table.insert(InventoryItems, {['Item'] = entity, ['Name'] = name, ['Icon'] = icon})
+                                table.insert(InventoryItems, {
+                                    ['Item'] = item.Item,
+                                    ['Name'] = name,
+                                    ['Icon'] = icon
+                                })
                             end
                         end
                     end
@@ -275,17 +287,23 @@ function MainTab(p)
 
             end
         end)
-
     end
 
-    local character = _C()
-
-    CreateTable(PARENT, parseInventory(character), ICON_SIZE)
+    local CurrentInventory = parseInventory(_C())
+    CreateTable(E.groupTable, CurrentInventory, ICON_SIZE)
 
 end
 
 
 
-Mods.BG3MCM.IMGUIAPI:InsertModMenuTab(ModuleUUID, 'Slots', Slots_MCM)
+function SettingsTab(p)
+    local slIntTableSize = p:AddSliderInt('Table size', 5, 5, 15, 1)
+
+    slIntTableSize.OnChange = function (e)
+        tableSize = e.Value[1]
+    end
+
+end
+
 
 MCM.InsertModMenuTab('Slots', Slots_MCM, ModuleUUID)

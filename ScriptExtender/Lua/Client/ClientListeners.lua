@@ -1,7 +1,11 @@
 Ext.RegisterNetListener('Slots_WhenLevelGameplayStarted', function (channel, payload, user)
-    AssignSlotsToStats()
 end)
 
+--- :warning:
+-- Ext.Entity.OnChange('InventoryMember', function()
+--     DPrint('SLOTS_InventoryMember')
+--     ReBuildUI()
+-- end)
 
 
 Channels.RebuildTable:SetHandler(function (Data)

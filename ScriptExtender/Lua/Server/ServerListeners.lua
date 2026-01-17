@@ -1,18 +1,44 @@
 Ext.Osiris.RegisterListener("LevelGameplayStarted", 2, "after", function(levelName, isEditorMode)
     Ext.Net.BroadcastMessage('Slots_WhenLevelGameplayStarted', '')
+    Globals.ItemSlotMap = Helpers.ModVars.Get(ModuleUUID).SlotsVars
+    AssignSlotsToStats()
 end)
 
 
 
+Ext.Entity.OnChange('InventoryMember', function()
+    -- DPrint('SLOTS_InventoryMember')
+    Channels.RebuildTable:Broadcast({})
+end)
+
+
+
+function AssignSlotsToStats()
+    Globals.ItemSlotMap = Globals.ItemSlotMap or {}
+
+    for uuid, slot in pairs(Globals.ItemSlotMap) do
+        if not uuid then return end
+        local item = Ext.Entity.Get(uuid)
+        if item then
+            local Stats = item.Data.StatsId
+            item.Equipable.Slot = slot
+            item:Replicate('Equipable')
+            Ext.Stats.Get(Stats).Slot = slot
+        end
+    end
+end
+
+
+
 Ext.Osiris.RegisterListener("Equipped", 2, "after", function(item, character)
-    -- DPrint('Equipped')
+    -- DPrint('SLOTS_Equipped')
     Channels.RebuildTable:Broadcast({})
 end)
 
 
 
 Ext.Osiris.RegisterListener("Unequipped", 2, "after", function(item, character)
-    -- DPrint('Unequipped')
+    -- DPrint('SLOTS_Unequipped')
     Channels.RebuildTable:Broadcast({})
 end)
 
@@ -24,6 +50,14 @@ Channels.ItemHandler:SetHandler(function (Data)
 
     if action == 'Delete' then
         Osi.RequestDelete(Data.uuid)
+    end
+
+    if action == 'Equip' then
+        Osi.Equip(_C().Uuid.EntityUuid, Data.uuid)
+    end
+
+    if action == 'Unequip' then
+        Osi.Unequip(_C().Uuid.EntityUuid, Data.uuid)
     end
 
     if action == 'Weight' then
@@ -41,27 +75,14 @@ Channels.ItemHandler:SetHandler(function (Data)
         end
     end
 
-    if action == 'Equip' then
-        local character = _C().Uuid.EntityUuid
-        Osi.Equip(character, Data.uuid)
-    end
-
-    if action == 'Unequip' then
-        local character = _C().Uuid.EntityUuid
-        Osi.Unequip(character, Data.uuid)
-    end
-
 end)
 
 
 
-
 Channels.RecreateItem:SetRequestHandler(function (Data)
-
     local handle = createListener()
 
     Helpers.Timer:OnTicks(5, function ()
-
         local dyeUuid
         local weight
         local uuid = Data.uuid
@@ -69,8 +90,6 @@ Channels.RecreateItem:SetRequestHandler(function (Data)
         local item = Ext.Entity.Get(uuid)
         local guid = item.GameObjectVisual.RootTemplateId
         local isEquipped = Osi.IsEquipped(uuid)
-
-        -- local equipmentSlot = item.InventoryMember.EquipmentSlot
 
         if item.ItemDye then
             dyeUuid = item.ItemDye.Color
@@ -80,30 +99,20 @@ Channels.RecreateItem:SetRequestHandler(function (Data)
             weight = 0
         end
 
-        Osi.RequestDelete(uuid)
-
         Osi.TemplateAddTo(guid, character, 1) -- this is a crime that it doesn't return uuid
 
         Helpers.Timer:OnTicks(15, function ()
+            local newItem = Ext.Entity.Get(Globals.newUuid)
 
             if isEquipped == 1 then
                 Osi.Equip(character, Globals.newUuid)
             end
 
-            local newItem = Ext.Entity.Get(Globals.newUuid)
+            newItem.Use.Boosts = item.Use.Boosts
+            newItem.Data.Weight = weight or newItem.Data.Weight
 
-            -- doesn't work; new slot doesn't automatically update in inventory ui. noesis xd?
-            -- if isEquipped ~= 1 then
-            -- -- Helpers.Timer:OnTicks(15, function ()
-            --     newItem.InventoryMember.EquipmentSlot = equipmentSlot
-            --     newItem:Replicate('InventoryMember')
-            -- -- end)
-            -- end
-
-            Helpers.Timer:OnTicks(5, function ()
-                newItem.Data.Weight = weight or newItem.Data.Weight
-                newItem:Replicate('Data')
-            end)
+            newItem:Replicate('Use')
+            newItem:Replicate('Data')
 
             if dyeUuid then
                 newItem:CreateComponent('ItemDye')
@@ -111,8 +120,9 @@ Channels.RecreateItem:SetRequestHandler(function (Data)
                 newItem:Replicate('ItemDye')
             end
 
-            Ext.Osiris.UnregisterListener(handle) --learned from EasyCheat :warning:
+            Osi.RequestDelete(uuid)
 
+            Ext.Osiris.UnregisterListener(handle) --learned from EasyCheat :warning:
         end)
     end)
     return true
@@ -121,7 +131,7 @@ end)
 
 
 Channels.RequestEquipped:SetRequestHandler(function (Data)
-    return FindEquppedItems()
+    return FindEquppedItems(Data.withWeapons)
 end)
 
 

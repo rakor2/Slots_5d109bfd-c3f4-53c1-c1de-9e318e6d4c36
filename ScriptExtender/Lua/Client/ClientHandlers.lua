@@ -1,30 +1,18 @@
-local xd
-
-
 Globals.States = Globals.States or {}
 
-
 function ReBuildUI()
-    if not w.Open then return end
-    Imgui.ClearChildren(PARENT)
-    -- Helpers.Timer:OnTicks(5, function ()
+    if w and not w.Open then return end
+    -- DPrint('SLOTS_ReBuildUI')
+    Imgui.ClearChildren(E.groupTable)
     Utils:AntiSpam(350, function () --TBD: temporary to not call it twice
         local character = _C()
-        CreateTable(PARENT, parseInventory(character), ICON_SIZE)
+        CreateTable(E.groupTable, parseInventory(character), ICON_SIZE)
     end)
 end
 
 
 
-Ext.Entity.OnChange('InventoryMember', function ()
-    -- DPrint('InventoryMember')
-    ReBuildUI()
-end)
-
-
-
 function RequestRecreateItem(item)
-
     local uuid = item.Uuid.EntityUuid
     local oldUuid = uuid
 
@@ -44,12 +32,27 @@ function RequestRecreateItem(item)
 
                 if newItem then
                     local Stats = newItem.Data.StatsId
+
+                    -- Globals.ItemSlotMap = Globals.ItemSlotMap or {}
                     Globals.ItemSlotMap[newItem.Uuid.EntityUuid] = Ext.Stats.Get(Stats).Slot
                     Globals.ItemSlotMap[oldUuid] = nil
-                    SaveSlotsToLocal()
-                    DeleteUnusedUuids() --clean up
-                end
+                    Channels.VarsHandler:RequestToServer({
+                        action = 'SaveVars',
+                        ItemSlotMap = Globals.ItemSlotMap
+                    }, function () end)
 
+
+                    -- Helpers.Timer:OnTicks(15, function ()
+
+                    --     Channels.VarsHandler:RequestToServer({
+                    --         action = 'LoadVars',
+                    --     }, function(Response)
+                    --         -- DDump(Response)
+                    --     end)
+
+                    -- end)
+
+                end
             end)
         end
     end)
@@ -60,9 +63,9 @@ end
 ---@param func function --loooooooooook it's colored
 function CreateSelectable(parent, name, func)
     local select = parent:AddSelectable(name)
+    select.IDContext = Ext.Math.Random(1, 10000)
     select.OnClick = function(e)
         func()
     end
 end
-
 

@@ -1,4 +1,6 @@
 function parseInventory(entity)
+    if not entity then return end
+
     local CurrentInventory = {}
     local inventories = entity.InventoryOwner.Inventories
 
